@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#F2F2F7">
+<title>Aura — Трекер БАДов</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Светлая тема (iOS Light) */
+    --bg: #F2F2F7;
+    --card: #FFFFFF;
+    --text: #1C1C1E;
+    --text-muted: #8E8E93;
+    --accent: #007AFF;
+    --accent-soft: #E5F1FF;
+    --success: #34C759;
+    --success-soft: #E8F8EC;
+    --danger: #FF3B30;
+    --danger-soft: #FFEBEA;
+    --border: #E5E5EA;
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+    --shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.08);
+    --spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    --modal-overlay: rgba(0,0,0,0.3);
+  }
+
+  /* Темная тема (iOS Dark Premium) */
+  [data-theme="dark"] {
+    --bg: #0A0A0C;         /* Глубокий графит вместо чистого черного */
+    --card: #1C1C1E;       /* Приятный темно-серый для карточек */
+    --text: #FFFFFF;
+    --text-muted: #98989D;
+    --accent: #0A84FF;     /* Яркий системный синий */
+    --accent-soft: rgba(10, 132, 255, 0.15);
+    --success: #32D74B;    /* Неоновый зеленый */
+    --success-soft: rgba(50, 215, 75, 0.15);
+    --danger: #FF453A;
+    --danger-soft: rgba(255, 69, 58, 0.15);
+    --border: #2C2C2E;     /* Тонкие, незаметные границы */
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    --shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.6);
+    --modal-overlay: rgba(0,0,0,0.7);
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    margin: 0; padding: 0;
+    font-family: 'Inter', -apple-system, sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+    padding-bottom: 100px;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 0.3s, color 0.3s;
+  }
+
+  .app { max-width: 600px; margin: 0 auto; padding: 20px; }
+
+  /* --- HEADER --- */
+  .header {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    margin-bottom: 24px; margin-top: 10px;
+  }
+  .header h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+  .header .date { color: var(--text-muted); font-size: 15px; font-weight: 500; margin-top: 4px; }
+  
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  
+  .theme-toggle {
+    background: var(--card); border: 1px solid var(--border);
+    width: 36px; height: 36px; border-radius: 50%; display: flex; justify-content: center; align-items: center;
+    font-size: 16px; cursor: pointer; box-shadow: var(--shadow); transition: all 0.2s;
+  }
+  .theme-toggle:active { transform: scale(0.9); }
+
+  .streak {
+    background: var(--card); border: 1px solid var(--border);
+    padding: 8px 12px; border-radius: 20px; font-weight: 600; font-size: 14px;
+    display: flex; align-items: center; gap: 6px; box-shadow: var(--shadow);
+  }
+
+  /* --- HERO PROGRESS --- */
+  .hero {
+    background: var(--card); border-radius: 24px; padding: 24px;
+    box-shadow: var(--shadow); margin-bottom: 32px;
+    display: flex; align-items: center; gap: 20px;
+    border: 1px solid var(--border); transition: background-color 0.3s, border-color 0.3s;
+  }
+  
+  .ring-container { position: relative; width: 80px; height: 80px; flex-shrink: 0; }
+  .ring-svg { transform: rotate(-90deg); width: 80px; height: 80px; }
+  .ring-bg { fill: none; stroke: var(--bg); stroke-width: 8; transition: stroke 0.3s; }
+  .ring-fill {
+    fill: none; stroke: var(--accent); stroke-width: 8; stroke-linecap: round;
+    transition: stroke-dashoffset 0.8s var(--spring), stroke 0.3s;
+  }
+  .ring-text {
+    position: absolute; inset: 0; display: flex; justify-content: center; align-items: center;
+    font-size: 18px; font-weight: 700;
+  }
+
+  .hero-info h2 { margin: 0 0 4px 0; font-size: 20px; font-weight: 700; }
+  .hero-info p { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 1.4; }
+  .next-pill {
+    display: inline-block; margin-top: 8px; font-size: 13px; font-weight: 600;
+    color: var(--accent); background: var(--accent-soft); padding: 4px 10px; border-radius: 8px;
+  }
+
+  /* --- SECTIONS --- */
+  .time-section { margin-bottom: 24px; animation: slideUp 0.5s var(--spring) both; }
+  .time-title {
+    font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text-muted); margin-bottom: 12px; margin-left: 12px;
+  }
+
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* --- CARDS --- */
+  .med-card {
+    background: var(--card); border-radius: 20px; padding: 16px;
+    margin-bottom: 12px; display: flex; align-items: center; gap: 16px;
+    box-shadow: var(--shadow); cursor: pointer;
+    transition: all 0.3s var(--spring);
+    border: 1px solid var(--border); position: relative; overflow: hidden;
+  }
+  .med-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); }
+  .med-card:active { transform: scale(0.97); box-shadow: none; }
+  
+  /* Состояние "Выпито" */
+  .med-card.taken { background: var(--bg); box-shadow: none; opacity: 0.7; }
+  .med-card.taken .med-title { text-decoration: line-through; color: var(--text-muted); }
+
+  /* Кастомный чекбокс */
+  .checkbox {
+    width: 32px; height: 32px; border-radius: 10px; border: 2px solid var(--border);
+    display: flex; justify-content: center; align-items: center; flex-shrink: 0;
+    transition: all 0.3s var(--spring); background: var(--card);
+  }
+  .med-card.taken .checkbox { background: var(--success); border-color: var(--success); }
+  
+  .checkbox svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 24; stroke-dashoffset: 24; transition: stroke-dashoffset 0.4s ease; }
+  .med-card.taken .checkbox svg { stroke-dashoffset: 0; }
+
+  .med-info { flex: 1; }
+  .med-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; transition: color 0.3s; }
+  .med-meta { font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  
+  /* Бейдж опоздания (вместо оранжевой рамки) */
+  .late-badge {
+    font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
+    background: var(--danger-soft); color: var(--danger); text-transform: uppercase; letter-spacing: 0.5px;
+  }
+
+  /* Учет остатков */
+  .stock-badge {
+    font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 4px;
+    background: var(--bg); color: var(--text-muted); border: 1px solid var(--border);
+  }
+  .stock-badge.low { background: var(--danger-soft); color: var(--danger); border-color: transparent; }
+
+  .delete-btn {
+    background: none; border: none; color: var(--text-muted); font-size: 24px;
+    cursor: pointer; padding: 8px; opacity: 0; transition: opacity 0.2s;
+  }
+  .med-card:hover .delete-btn { opacity: 1; }
+  @media(max-width: 600px) { .delete-btn { opacity: 0.5; } }
+
+  /* --- FAB --- */
+  .fab {
+    position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px;
+    background: var(--text); color: var(--bg); border: none; border-radius: 30px;
+    font-size: 32px; font-weight: 300; display: flex; justify-content: center; align-items: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2); cursor: pointer; z-index: 100;
+    transition: all 0.3s var(--spring);
+  }
+  .fab:hover { transform: scale(1.1) rotate(90deg); background: var(--accent); color: #fff; }
+
+  /* --- MODAL --- */
+  .modal-overlay {
+    position: fixed; inset: 0; background: var(--modal-overlay);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    display: flex; justify-content: center; align-items: flex-end; z-index: 1000;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: auto; }
+  
+  .modal-content {
+    background: var(--card); width: 100%; max-width: 600px;
+    border-radius: 32px 32px 0 0; padding: 24px;
+    transform: translateY(100%); transition: transform 0.4s var(--spring), background-color 0.3s;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.1); border: 1px solid var(--border); border-bottom: none;
+  }
+  .modal-overlay.open .modal-content { transform: translateY(0); }
+  
+  .drag-handle { width: 40px; height: 5px; background: var(--border); border-radius: 3px; margin: 0 auto 20px auto; }
+  
+  .input-group { margin-bottom: 16px; }
+  .input-group label { display: block; font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; margin-left: 12px; }
+  .input-group input, .input-group select {
+    width: 100%; padding: 16px; border-radius: 16px; border: 1px solid var(--border);
+    background: var(--bg); font-family: inherit; font-size: 16px; color: var(--text);
+    outline: none; transition: all 0.2s;
+  }
+  .input-group input:focus, .input-group select:focus { border-color: var(--accent); background: var(--card); }
+  
+  .row-inputs { display: flex; gap: 12px; }
+  .row-inputs .input-group { flex: 1; }
+
+  .btn-primary {
+    width: 100%; padding: 18px; border-radius: 16px; border: none;
+    background: var(--text); color: var(--bg); font-size: 16px; font-weight: 600;
+    margin-top: 8px; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-primary:active { transform: scale(0.97); }
+
+  .empty-state { text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 15px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="header">
+    <div>
+      <h1>Сегодня</h1>
+      <div class="date" id="date-text">Загрузка...</div>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle" onclick="toggleTheme()" id="theme-btn">🌙</div>
+      <div class="streak" id="streak-badge">🔥 0</div>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="ring-container">
+      <svg class="ring-svg">
+        <circle class="ring-bg" cx="40" cy="40" r="32"></circle>
+        <circle class="ring-fill" id="ring-fill" cx="40" cy="40" r="32" stroke-dasharray="201" stroke-dashoffset="201"></circle>
+      </svg>
+      <div class="ring-text" id="ring-text">0%</div>
+    </div>
+    <div class="hero-info">
+      <h2 id="progress-text">0 из 0</h2>
+      <p>принято сегодня</p>
+      <div class="next-pill" id="next-pill">Всё выпито! 🎉</div>
+    </div>
+  </div>
+
+  <div id="sections-container">
+    <!-- Секции будут здесь -->
+  </div>
+</div>
+
+<button class="fab" onclick="openModal()">+</button>
+
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-content">
+    <div class="drag-handle"></div>
+    <h2 style="margin-top:0; margin-bottom:20px; font-size:22px;">Добавить БАД</h2>
+    
+    <div class="input-group">
+      <label>Название</label>
+      <input type="text" id="input-name" placeholder="Например, Омега-3" autocomplete="off">
+    </div>
+    
+    <div class="row-inputs">
+      <div class="input-group">
+        <label>Дозировка (шт)</label>
+        <input type="text" id="input-dosage" placeholder="1" inputmode="numeric">
+      </div>
+      <div class="input-group">
+        <label>В упаковке (всего)</label>
+        <input type="number" id="input-stock" placeholder="60" min="1">
+      </div>
+    </div>
+
+    <div class="input-group">
+      <label>Время приема</label>
+      <select id="input-time">
+        <option value="morning">🌅 Утро</option>
+        <option value="afternoon">☀️ День</option>
+        <option value="evening">🌙 Вечер</option>
+        <option value="anytime" selected>🕐 В любое время</option>
+      </select>
+    </div>
+
+    <button class="btn-primary" onclick="addMed()">Сохранить</button>
+  </div>
+</div>
+
+<script>
+  // --- ТЕМА ---
+  const themeBtn = document.getElementById('theme-btn');
+  const currentTheme = localStorage.getItem('aura_theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    themeBtn.innerText = theme === 'dark' ? '☀️' : '🌙';
+    localStorage.setItem('aura_theme', theme);
+    // Обновляем цвет в meta для Safari (верхняя панель)
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', theme === 'dark' ? '#0A0A0C' : '#F2F2F7');
+  }
+
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme');
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+  }
+
+  applyTheme(currentTheme);
+
+  // --- STATE ---
+  let meds = JSON.parse(localStorage.getItem('aura_meds')) || [];
+  let history = JSON.parse(localStorage.getItem('aura_history')) || {};
+
+  const TIMES = {
+    morning: { label: 'Утро', icon: '🌅', defaultHour: 8 },
+    afternoon: { label: 'День', icon: '☀️', defaultHour: 14 },
+    evening: { label: 'Вечер', icon: '🌙', defaultHour: 20 },
+    anytime: { label: 'В любое время', icon: '🕐', defaultHour: 12 }
+  };
+
+  const dateOptions = { weekday: 'long', day: 'numeric', month: 'long' };
+  document.getElementById('date-text').innerText = new Date().toLocaleDateString('ru-RU', dateOptions);
+
+  function getTodayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  function saveData() {
+    localStorage.setItem('aura_meds', JSON.stringify(meds));
+    localStorage.setItem('aura_history', JSON.stringify(history));
+  }
+
+  // --- ЛОГИКА СТРИКА ---
+  function calculateStreak() {
+    let streak = 0;
+    let d = new Date();
+    let todayStr = getTodayStr();
+    let todayHist = history[todayStr] || [];
+    let allTakenToday = meds.length > 0 && meds.every(m => todayHist.includes(m.id));
+    
+    if (!allTakenToday) d.setDate(d.getDate() - 1);
+
+    while (true) {
+      let ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      let dayHist = history[ds] || [];
+      if (meds.length > 0 && meds.every(m => dayHist.includes(m.id))) {
+        streak++;
+        d.setDate(d.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+    return streak;
+  }
+
+  // --- РЕНДЕР ---
+  function render() {
+    const today = getTodayStr();
+    const todayHist = history[today] || [];
+    const container = document.getElementById('sections-container');
+    container.innerHTML = '';
+
+    if (meds.length === 0) {
+      container.innerHTML = '<div class="empty-state">У тебя пока нет добавленных БАДов. Жми на плюс, чтобы добавить!</div>';
+      updateHero(0, 0);
+      return;
+    }
+
+    const timeOrder = { 'morning': 1, 'afternoon': 2, 'evening': 3, 'anytime': 4 };
+    meds.sort((a, b) => timeOrder[a.time] - timeOrder[b.time]);
+
+    let totalTaken = 0;
+    let nextPillName = 'Всё выпито! 🎉';
+    let foundNext = false;
+    const currentHour = new Date().getHours();
+
+    const groups = { morning: [], afternoon: [], evening: [], anytime: [] };
+    meds.forEach(m => {
+        if(!groups[m.time]) groups[m.time] = [];
+        groups[m.time].push(m);
+    });
+
+    for (const [timeKey, groupMeds] of Object.entries(groups)) {
+      if (groupMeds.length === 0) continue;
+
+      const section = document.createElement('div');
+      section.className = 'time-section';
+      section.innerHTML = `<div class="time-title">${TIMES[timeKey].icon} ${TIMES[timeKey].label}</div>`;
+
+      groupMeds.forEach(med => {
+        const isTaken = todayHist.includes(med.id);
+        if (isTaken) totalTaken++;
+        
+        if (!isTaken && !foundNext && timeKey !== 'anytime') {
+           if (currentHour <= TIMES[timeKey].defaultHour + 2) {
+               nextPillName = `Далее: ${med.name}`;
+               foundNext = true;
+           }
+        }
+
+        // Логика опоздания
+        const isLate = !isTaken && timeKey !== 'anytime' && currentHour > TIMES[timeKey].defaultHour + 2;
+        
+        const card = document.createElement('div');
+        card.className = `med-card ${isTaken ? 'taken' : ''}`; // Убрали класс late
+        card.onclick = () => toggleMed(med.id);
+        
+        let stockHtml = '';
+        if (med.stock !== null && med.stock !== undefined) {
+          const isLow = med.stock <= 10;
+          stockHtml = `<span class="stock-badge ${isLow ? 'low' : ''}">Осталось: ${med.stock}</span>`;
+        }
+
+        // Добавляем бейджик опоздания в мета-инфо, если нужно
+        const lateBadge = isLate ? `<span class="late-badge">Опоздание</span>` : '';
+
+        card.innerHTML = `
+          <div class="checkbox">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </div>
+          <div class="med-info">
+            <div class="med-title">${med.name}</div>
+            <div class="med-meta">
+              ${med.dosage || '1'} шт ${stockHtml} ${lateBadge}
+            </div>
+          </div>
+          <button class="delete-btn" onclick="event.stopPropagation(); deleteMed('${med.id}')">×</button>
+        `;
+        section.appendChild(card);
+      });
+      container.appendChild(section);
+    }
+
+    if (totalTaken === meds.length) nextPillName = 'Всё выпито! 🎉';
+    
+    updateHero(totalTaken, meds.length, nextPillName);
+    document.getElementById('streak-badge').innerText = `🔥 ${calculateStreak()}`;
+  }
+
+  function updateHero(taken, total, nextText) {
+    document.getElementById('progress-text').innerText = `${taken} из ${total}`;
+    if (nextText) document.getElementById('next-pill').innerText = nextText;
+
+    const percent = total === 0 ? 0 : (taken / total);
+    const ring = document.getElementById('ring-fill');
+    const text = document.getElementById('ring-text');
+    
+    ring.style.strokeDashoffset = 201 - (percent * 201);
+    text.innerText = `${Math.round(percent * 100)}%`;
+
+    if (percent === 1 && total > 0) {
+      ring.style.stroke = 'var(--success)';
+      text.style.color = 'var(--success)';
+    } else {
+      ring.style.stroke = 'var(--accent)';
+      text.style.color = 'var(--text)';
+    }
+  }
+
+  // --- ДЕЙСТВИЯ ---
+  
+  function getDosageAmount(dosageStr) {
+    if (!dosageStr) return 1;
+    const match = dosageStr.match(/\d+(\.\d+)?/);
+    return match ? parseFloat(match[0]) : 1;
+  }
+
+  function toggleMed(id) {
+    const today = getTodayStr();
+    if (!history[today]) history[today] = [];
+
+    const med = meds.find(m => m.id === id);
+    const idx = history[today].indexOf(id);
+    const isTaking = idx === -1;
+    
+    const doseQty = getDosageAmount(med.dosage);
+
+    if (isTaking) {
+      history[today].push(id);
+      if (med.stock !== undefined && med.stock !== null) {
+        med.stock = Math.max(0, med.stock - doseQty); 
+      }
+      if (navigator.vibrate) navigator.vibrate(30);
+    } else {
+      history[today].splice(idx, 1);
+      if (med.stock !== undefined && med.stock !== null) {
+        med.stock += doseQty; 
+      }
+    }
+
+    saveData();
+    render();
+  }
+
+  function addMed() {
+    const name = document.getElementById('input-name').value.trim();
+    const dosage = document.getElementById('input-dosage').value.trim();
+    const stockVal = document.getElementById('input-stock').value;
+    const time = document.getElementById('input-time').value;
+
+    if (!name) return;
+
+    meds.push({
+      id: Date.now().toString(),
+      name,
+      dosage: dosage || '1', 
+      time,
+      stock: stockVal ? parseInt(stockVal) : null
+    });
+
+    saveData();
+    closeModal();
+    render();
+
+    document.getElementById('input-name').value = '';
+    document.getElementById('input-dosage').value = '';
+    document.getElementById('input-stock').value = '';
+    document.getElementById('input-time').value = 'anytime';
+  }
+
+  function deleteMed(id) {
+    if (confirm('Удалить этот БАД?')) {
+      meds = meds.filter(m => m.id !== id);
+      saveData();
+      render();
+    }
+  }
+
+  // --- МОДАЛКА ---
+  function openModal() {
+    document.getElementById('modal').classList.add('open');
+    setTimeout(() => document.getElementById('input-name').focus(), 300);
+  }
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+  }
+
+  // Старт
+  render();
+</script>
+</body>
+</html>
